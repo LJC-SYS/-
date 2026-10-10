@@ -1,5 +1,14 @@
 """Schema 统一导出。"""
 
+from app.schemas.accounting import (
+    AccountingCategoryItem,
+    AccountingCategoryListData,
+    AccountingRecordItem,
+    AccountingSummaryData,
+    AccountingSummaryGroupItem,
+    CreateAccountingRecordRequest,
+    UpdateAccountingRecordRequest,
+)
 from app.schemas.auth import (
     ChangePasswordRequest,
     LoginRequest,
@@ -23,6 +32,24 @@ from app.schemas.checkin import (
     NewBadgeItem,
     PointsBalanceResponseData,
     PointTransactionItem,
+)
+from app.schemas.memo import (
+    CreateMemoRequest,
+    MemoItem,
+    UpdateMemoRequest,
+)
+from app.schemas.sync import (
+    SyncPullChangeItem,
+    SyncPullResponseData,
+    SyncPushChangeItem,
+    SyncPushRequest,
+    SyncPushResultItem,
+    SyncPushResponseData,
+)
+from app.schemas.todo import (
+    CreateTodoRequest,
+    TodoItem,
+    UpdateTodoRequest,
 )
 from app.schemas.weather import (
     CurrentWeatherOut,
@@ -57,4 +84,27 @@ __all__ = [
     "PointTransactionItem",
     "BadgeItem",
     "BadgeListResponseData",
+    # 待办
+    "TodoItem",
+    "CreateTodoRequest",
+    "UpdateTodoRequest",
+    # 备忘录
+    "MemoItem",
+    "CreateMemoRequest",
+    "UpdateMemoRequest",
+    # 记账
+    "AccountingCategoryItem",
+    "AccountingCategoryListData",
+    "AccountingRecordItem",
+    "CreateAccountingRecordRequest",
+    "UpdateAccountingRecordRequest",
+    "AccountingSummaryData",
+    "AccountingSummaryGroupItem",
+    # 同步
+    "SyncPushRequest",
+    "SyncPushChangeItem",
+    "SyncPushResultItem",
+    "SyncPushResponseData",
+    "SyncPullResponseData",
+    "SyncPullChangeItem",
 ]
