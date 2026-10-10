@@ -483,6 +483,525 @@
           }
         }
       }
+    },
+    "/api/v1/weather/current": {
+      "get": {
+        "tags": [
+          "生活工具 - 天气"
+        ],
+        "summary": "当前天气",
+        "description": "获取指定城市的实时天气数据。\n\n- 优先走本地缓存（默认 30 分钟）。\n- 若第三方服务异常但本地有历史缓存，自动触发降级返回并标明 degraded=True。\n- 无需鉴权。",
+        "operationId": "get_current_weather_api_v1_weather_current_get",
+        "parameters": [
+          {
+            "name": "city_code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "城市编码，如沧州: 101090701",
+              "title": "City Code"
+            },
+            "description": "城市编码，如沧州: 101090701"
+          },
+          {
+            "name": "city_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "城市名称（可选），如沧州",
+              "title": "City Name"
+            },
+            "description": "城市名称（可选），如沧州"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_CurrentWeatherOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weather/forecast": {
+      "get": {
+        "tags": [
+          "生活工具 - 天气"
+        ],
+        "summary": "天气预报",
+        "description": "获取未来 1~7 天天气预报。\n\n- 默认获取 3 天预报。\n- 具备缓存与降级机制。\n- 无需鉴权。",
+        "operationId": "get_weather_forecast_api_v1_weather_forecast_get",
+        "parameters": [
+          {
+            "name": "city_code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "城市编码，如沧州: 101090701",
+              "title": "City Code"
+            },
+            "description": "城市编码，如沧州: 101090701"
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 7,
+              "minimum": 1,
+              "description": "预报天数（1~7 天，默认 3）",
+              "default": 3,
+              "title": "Days"
+            },
+            "description": "预报天数（1~7 天，默认 3）"
+          },
+          {
+            "name": "city_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "城市名称（可选）",
+              "title": "City Name"
+            },
+            "description": "城市名称（可选）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_WeatherForecastOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checkins": {
+      "post": {
+        "tags": [
+          "打卡"
+        ],
+        "summary": "用户打卡",
+        "description": "每日打卡接口。\n\n- 服务端自主以 Asia/Shanghai 时区计算打卡日期与连续天数。\n- 每日打卡奖励 10 积分，5 步事务原子落库。\n- 自动判定并解锁达成徽章（如坚持一周等）。\n- 支持 client_id 幂等防重放，同 client_id 重复提交返回已有记录。",
+        "operationId": "create_checkin_api_v1_checkins_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckinRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_CheckinResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checkins/calendar": {
+      "get": {
+        "tags": [
+          "打卡"
+        ],
+        "summary": "打卡日历",
+        "description": "按年月查询打卡日历与记录明细。\n\n- checkin_days 列表专为日历组件设计，包含当月已打卡的所有天数序号（如 [1, 2, 3, 5]）。\n- 返回当月打卡总天数与打卡记录明细。",
+        "operationId": "get_checkin_calendar_api_v1_checkins_calendar_get",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "年份，例如 2026",
+              "title": "Year"
+            },
+            "description": "年份，例如 2026"
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 12,
+              "minimum": 1,
+              "description": "月份，1~12",
+              "title": "Month"
+            },
+            "description": "月份，1~12"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_CheckinCalendarResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checkins/stats": {
+      "get": {
+        "tags": [
+          "打卡"
+        ],
+        "summary": "打卡统计",
+        "description": "获取用户打卡统计概览。\n\n- 包含当前连续打卡天数、历史最长连续天数、累计打卡天数、当月打卡天数。\n- 返回 today_checked 标识，供客户端直接控制打卡按钮状态。",
+        "operationId": "get_checkin_stats_api_v1_checkins_stats_get",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_CheckinStatsResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/points/balance": {
+      "get": {
+        "tags": [
+          "积分"
+        ],
+        "summary": "积分余额",
+        "description": "查询当前用户的积分余额、今日获得积分及历史累计总获得积分。",
+        "operationId": "get_points_balance_api_v1_points_balance_get",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_PointsBalanceResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/points/transactions": {
+      "get": {
+        "tags": [
+          "积分"
+        ],
+        "summary": "积分流水",
+        "description": "分页获取用户积分变动历史明细。\n\n- 统一采用标准分页响应结构 PageData。\n- 支持按 transaction_type 筛选。",
+        "operationId": "get_point_transactions_api_v1_points_transactions_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从 1 开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从 1 开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页条数，1~100",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页条数，1~100"
+          },
+          {
+            "name": "transaction_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "变动类型，如 checkin",
+              "title": "Transaction Type"
+            },
+            "description": "变动类型，如 checkin"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_PageData_PointTransactionItem__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/badges": {
+      "get": {
+        "tags": [
+          "徽章"
+        ],
+        "summary": "徽章列表",
+        "description": "获取系统全量徽章及当前用户解锁状态。\n\n- 每项徽章包含 earned (true/false) 与 earned_at 字段，方便客户端灰色/彩色渲染。\n- 返回 earned_count 与 total_count。",
+        "operationId": "get_badges_list_api_v1_badges_get",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_BadgeListResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -527,6 +1046,431 @@
         "title": "ApiResponse",
         "description": "统一响应体。"
       },
+      "ApiResponse_BadgeListResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BadgeListResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[BadgeListResponseData]"
+      },
+      "ApiResponse_CheckinCalendarResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckinCalendarResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[CheckinCalendarResponseData]"
+      },
+      "ApiResponse_CheckinResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckinResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[CheckinResponseData]"
+      },
+      "ApiResponse_CheckinStatsResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckinStatsResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[CheckinStatsResponseData]"
+      },
+      "ApiResponse_CurrentWeatherOut_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CurrentWeatherOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[CurrentWeatherOut]"
+      },
+      "ApiResponse_PageData_PointTransactionItem__": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageData_PointTransactionItem_"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[PageData[PointTransactionItem]]"
+      },
+      "ApiResponse_PointsBalanceResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PointsBalanceResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[PointsBalanceResponseData]"
+      },
+      "ApiResponse_WeatherForecastOut_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeatherForecastOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[WeatherForecastOut]"
+      },
+      "BadgeItem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "徽章唯一编码"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "徽章名称"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "徽章描述"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "图标地址"
+          },
+          "rule_type": {
+            "type": "string",
+            "title": "Rule Type",
+            "description": "规则类型"
+          },
+          "rule_value": {
+            "type": "integer",
+            "title": "Rule Value",
+            "description": "达标数值"
+          },
+          "earned": {
+            "type": "boolean",
+            "title": "Earned",
+            "description": "当前用户是否已获得"
+          },
+          "earned_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earned At",
+            "description": "获得时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "rule_type",
+          "rule_value",
+          "earned"
+        ],
+        "title": "BadgeItem",
+        "description": "徽章信息项。"
+      },
+      "BadgeListResponseData": {
+        "properties": {
+          "earned_count": {
+            "type": "integer",
+            "title": "Earned Count",
+            "description": "已解锁徽章数"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count",
+            "description": "徽章总数"
+          },
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/BadgeItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "全部徽章列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "earned_count",
+          "total_count",
+          "list"
+        ],
+        "title": "BadgeListResponseData",
+        "description": "徽章列表出参。"
+      },
       "ChangePasswordRequest": {
         "properties": {
           "old_password": {
@@ -546,6 +1490,384 @@
           "new_password"
         ],
         "title": "ChangePasswordRequest"
+      },
+      "CheckinCalendarItem": {
+        "properties": {
+          "checkin_date": {
+            "type": "string",
+            "title": "Checkin Date"
+          },
+          "checkin_time": {
+            "type": "string",
+            "title": "Checkin Time"
+          },
+          "points_earned": {
+            "type": "integer",
+            "title": "Points Earned"
+          },
+          "continuous_days": {
+            "type": "integer",
+            "title": "Continuous Days"
+          },
+          "remark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remark"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checkin_date",
+          "checkin_time",
+          "points_earned",
+          "continuous_days"
+        ],
+        "title": "CheckinCalendarItem",
+        "description": "日历中的单条打卡明细。"
+      },
+      "CheckinCalendarResponseData": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year",
+            "description": "年份"
+          },
+          "month": {
+            "type": "integer",
+            "title": "Month",
+            "description": "月份 1~12"
+          },
+          "checkin_days": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Checkin Days",
+            "description": "当月已打卡日期列表，用于日历高亮"
+          },
+          "month_total": {
+            "type": "integer",
+            "title": "Month Total",
+            "description": "当月打卡总天数"
+          },
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/CheckinCalendarItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "打卡记录明细"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "month",
+          "checkin_days",
+          "month_total",
+          "list"
+        ],
+        "title": "CheckinCalendarResponseData",
+        "description": "打卡日历出参。"
+      },
+      "CheckinRequest": {
+        "properties": {
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id",
+            "description": "幂等标识(UUID)，防重复提交"
+          },
+          "remark": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remark",
+            "description": "备注，≤255字"
+          }
+        },
+        "type": "object",
+        "title": "CheckinRequest",
+        "description": "打卡请求体。"
+      },
+      "CheckinResponseData": {
+        "properties": {
+          "checkin_id": {
+            "type": "integer",
+            "title": "Checkin Id",
+            "description": "打卡记录ID"
+          },
+          "checkin_date": {
+            "type": "string",
+            "title": "Checkin Date",
+            "description": "打卡日期 YYYY-MM-DD"
+          },
+          "checkin_time": {
+            "type": "string",
+            "title": "Checkin Time",
+            "description": "打卡时间 ISO 8601"
+          },
+          "points_earned": {
+            "type": "integer",
+            "title": "Points Earned",
+            "description": "本次获得积分"
+          },
+          "continuous_days": {
+            "type": "integer",
+            "title": "Continuous Days",
+            "description": "连续打卡天数"
+          },
+          "points_balance": {
+            "type": "integer",
+            "title": "Points Balance",
+            "description": "最新积分余额"
+          },
+          "new_badges": {
+            "items": {
+              "$ref": "#/components/schemas/NewBadgeItem"
+            },
+            "type": "array",
+            "title": "New Badges",
+            "description": "本次新获得的徽章列表",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "checkin_id",
+          "checkin_date",
+          "checkin_time",
+          "points_earned",
+          "continuous_days",
+          "points_balance"
+        ],
+        "title": "CheckinResponseData",
+        "description": "打卡成功出参。"
+      },
+      "CheckinStatsResponseData": {
+        "properties": {
+          "continuous_days": {
+            "type": "integer",
+            "title": "Continuous Days",
+            "description": "当前连续打卡天数"
+          },
+          "max_continuous_days": {
+            "type": "integer",
+            "title": "Max Continuous Days",
+            "description": "历史最长连续打卡天数"
+          },
+          "total_checkin_days": {
+            "type": "integer",
+            "title": "Total Checkin Days",
+            "description": "累计打卡总天数"
+          },
+          "current_month_days": {
+            "type": "integer",
+            "title": "Current Month Days",
+            "description": "当月打卡天数"
+          },
+          "last_checkin_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Checkin Date",
+            "description": "最近打卡日期"
+          },
+          "today_checked": {
+            "type": "boolean",
+            "title": "Today Checked",
+            "description": "今日是否已打卡"
+          }
+        },
+        "type": "object",
+        "required": [
+          "continuous_days",
+          "max_continuous_days",
+          "total_checkin_days",
+          "current_month_days",
+          "today_checked"
+        ],
+        "title": "CheckinStatsResponseData",
+        "description": "打卡统计出参。"
+      },
+      "CurrentWeatherOut": {
+        "properties": {
+          "city_code": {
+            "type": "string",
+            "title": "City Code",
+            "description": "城市编码"
+          },
+          "city_name": {
+            "type": "string",
+            "title": "City Name",
+            "description": "城市名称"
+          },
+          "weather_type": {
+            "type": "string",
+            "title": "Weather Type",
+            "description": "天气类型",
+            "default": "current"
+          },
+          "temperature": {
+            "type": "string",
+            "title": "Temperature",
+            "description": "温度字符串，如 18.50"
+          },
+          "humidity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity",
+            "description": "湿度百分比"
+          },
+          "wind_info": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Info",
+            "description": "风向风力说明"
+          },
+          "weather_text": {
+            "type": "string",
+            "title": "Weather Text",
+            "description": "天气现象描述"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "天气图标地址"
+          },
+          "from_cache": {
+            "type": "boolean",
+            "title": "From Cache",
+            "description": "是否来自缓存",
+            "default": false
+          },
+          "degraded": {
+            "type": "boolean",
+            "title": "Degraded",
+            "description": "是否降级返回",
+            "default": false
+          },
+          "fetched_at": {
+            "type": "string",
+            "title": "Fetched At",
+            "description": "数据获取时间 ISO 8601"
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At",
+            "description": "缓存失效时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "city_code",
+          "city_name",
+          "temperature",
+          "weather_text",
+          "fetched_at",
+          "expires_at"
+        ],
+        "title": "CurrentWeatherOut",
+        "description": "实时天气出参。"
+      },
+      "ForecastItem": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "description": "日期 YYYY-MM-DD"
+          },
+          "weather_text": {
+            "type": "string",
+            "title": "Weather Text",
+            "description": "天气现象描述"
+          },
+          "temp_max": {
+            "type": "string",
+            "title": "Temp Max",
+            "description": "最高温度"
+          },
+          "temp_min": {
+            "type": "string",
+            "title": "Temp Min",
+            "description": "最低温度"
+          },
+          "wind_info": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Info",
+            "description": "风向风力"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "图标地址"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "weather_text",
+          "temp_max",
+          "temp_min"
+        ],
+        "title": "ForecastItem",
+        "description": "预报单日天气项。"
       },
       "HTTPValidationError": {
         "properties": {
@@ -616,6 +1938,155 @@
         },
         "type": "object",
         "title": "LogoutRequest"
+      },
+      "NewBadgeItem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "徽章编码"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "徽章名称"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "图标地址"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name"
+        ],
+        "title": "NewBadgeItem",
+        "description": "新获得徽章项。"
+      },
+      "PageData_PointTransactionItem_": {
+        "properties": {
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/PointTransactionItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "当前页数据"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "当前页码",
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "每页条数",
+            "default": 20
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "总条数",
+            "default": 0
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "总页数",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "PageData[PointTransactionItem]"
+      },
+      "PointTransactionItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "流水ID"
+          },
+          "change_amount": {
+            "type": "integer",
+            "title": "Change Amount",
+            "description": "变动额度"
+          },
+          "balance_after": {
+            "type": "integer",
+            "title": "Balance After",
+            "description": "变动后余额"
+          },
+          "transaction_type": {
+            "type": "string",
+            "title": "Transaction Type",
+            "description": "变动类型"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "变动描述"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "description": "创建时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "change_amount",
+          "balance_after",
+          "transaction_type",
+          "created_at"
+        ],
+        "title": "PointTransactionItem",
+        "description": "单条积分流水项。"
+      },
+      "PointsBalanceResponseData": {
+        "properties": {
+          "points_balance": {
+            "type": "integer",
+            "title": "Points Balance",
+            "description": "当前积分余额"
+          },
+          "today_earned": {
+            "type": "integer",
+            "title": "Today Earned",
+            "description": "今日已获得积分"
+          },
+          "total_earned": {
+            "type": "integer",
+            "title": "Total Earned",
+            "description": "累计已获得积分"
+          }
+        },
+        "type": "object",
+        "required": [
+          "points_balance",
+          "today_earned",
+          "total_earned"
+        ],
+        "title": "PointsBalanceResponseData",
+        "description": "积分余额出参。"
       },
       "RefreshRequest": {
         "properties": {
@@ -797,6 +2268,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -806,6 +2284,48 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WeatherForecastOut": {
+        "properties": {
+          "city_code": {
+            "type": "string",
+            "title": "City Code",
+            "description": "城市编码"
+          },
+          "city_name": {
+            "type": "string",
+            "title": "City Name",
+            "description": "城市名称"
+          },
+          "from_cache": {
+            "type": "boolean",
+            "title": "From Cache",
+            "description": "是否来自缓存",
+            "default": false
+          },
+          "degraded": {
+            "type": "boolean",
+            "title": "Degraded",
+            "description": "是否降级返回",
+            "default": false
+          },
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "预报列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "city_code",
+          "city_name",
+          "list"
+        ],
+        "title": "WeatherForecastOut",
+        "description": "天气预报出参。"
       }
     }
   }
