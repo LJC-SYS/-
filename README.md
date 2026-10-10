@@ -11,13 +11,14 @@
 ```
 Life Assistant/
 ├── docs/                       # 项目文档（接口契约、数据库设计、部署等）
-├── backend/                    # FastAPI 后端工程
+├── backend/                    # FastAPI 后端工程（成员 1）
 │   ├── app/                    # 应用代码
 │   ├── alembic/                # 数据库迁移
 │   ├── deploy/                 # 部署与验证脚本
 │   ├── scripts/                # 冒烟测试
 │   ├── .env.example            # 环境变量示例
 │   └── README.md               # 后端快速开始
+├── admin/                      # Vue3 管理后台（成员 4）
 ├── .github/                    # CI 与 PR 模板
 └── 一站式综合生活助手-成员任务执行清单.md
 ```
