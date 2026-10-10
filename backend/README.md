@@ -59,6 +59,23 @@ DATABASE_URL=sqlite:///./life_assistant.db
 ./.venv/Scripts/python.exe -m alembic downgrade -1
 ```
 
+### 4.1 初始化种子数据（可选，联调建议执行）
+
+```bash
+# 初始化管理员账号、系统默认记账分类、徽章定义（幂等，可重复执行）
+./.venv/Scripts/python.exe scripts/seed.py
+```
+
+初始化内容：
+
+| 内容 | 说明 |
+| --- | --- |
+| 管理员账号 | `admin` / `Admin@123456`（仅供本地/test 开发，prod 必须改） |
+| 系统默认记账分类 | 11 个（7 支出 + 4 收入） |
+| 徽章定义 | 6 个（连续打卡 3/7/30/100 天 + 累计 50/365 天） |
+
+> 管理员账号供成员 4 的 Vue3 管理后台登录使用。
+
 ### 5. 启动服务
 
 ```bash
