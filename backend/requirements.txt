@@ -1,0 +1,27 @@
+# ---------- Web 框架 ----------
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# ---------- 配置与校验 ----------
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# ---------- 数据库 ----------
+SQLAlchemy==2.0.36
+alembic==1.14.0
+# PostgreSQL 驱动（使用 psycopg3）
+psycopg[binary]==3.2.3
+
+# ---------- 鉴权 ----------
+PyJWT==2.10.1
+# 直接使用 bcrypt，不引 passlib：
+# passlib 1.7.4 与 bcrypt 4.x 存在已知不兼容（检测 wrap bug 时抛 72 字节异常）
+bcrypt==4.2.1
+
+# ---------- 工具 ----------
+python-multipart==0.0.20
+# 第三方 HTTP 调用（成员 2 使用）
+httpx==0.28.1
+
+# ---------- 可选：本地开发 ----------
+# 若使用 SQLite 无需额外依赖

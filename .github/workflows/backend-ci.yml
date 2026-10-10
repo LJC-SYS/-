@@ -1,0 +1,100 @@
+name: Backend CI
+
+# 对应《成员任务执行清单》成员 1 任务「配置基础 CI 检查」
+#
+# 检查项：
+#   1. 代码能正常导入（语法/依赖问题）
+#   2. 迁移脚本能从空库完整跑通并能回滚
+#   3. 接口冒烟测试全部通过
+#
+# 只检查后端改动，避免 Android/Vue 代码触发无意义构建。
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  backend-check:
+    name: 后端检查
+    runs-on: ubuntu-latest
+
+    env:
+      # CI 环境使用 SQLite，无需额外服务容器
+      APP_ENV: test
+      DATABASE_URL: sqlite:///./ci_test.db
+      JWT_SECRET_KEY: ci-only-secret-not-used-in-production-0123456789abcdef
+      LOG_DIR: ""
+      LOG_LEVEL: WARNING
+      CORS_ORIGINS: "*"
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 代码可导入检查
+        run: |
+          python -c "from app.main import app; print('APP IMPORT OK')"
+
+      - name: 迁移脚本校验（空库 upgrade / downgrade / 再 upgrade）
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+          echo "MIGRATION OK"
+
+      - name: 校验表数量
+        run: |
+          python -c "
+          from app.core.database import engine
+          from sqlalchemy import inspect
+          names = [t for t in inspect(engine).get_table_names() if t != 'alembic_version']
+          assert len(names) == 13, f'期望 13 张业务表，实际 {len(names)}: {sorted(names)}'
+          print(f'表数量校验通过：{len(names)} 张')
+          "
+
+      - name: 接口冒烟测试
+        run: |
+          python scripts/smoke_test.py
+
+      - name: 检查是否误提交敏感文件
+        run: |
+          if [ -f ".env" ]; then
+            echo "::error::检测到 .env 被提交到仓库，请立即移除并更换密钥！"
+            exit 1
+          fi
+          echo "敏感文件检查通过"
+
+      - name: 检查是否硬编码密钥
+        run: |
+          # 粗筛常见的硬编码密钥写法，避免第三方 Key 进代码
+          if grep -rniE "(api_key|secret_key|password)\s*=\s*[\"'][A-Za-z0-9]{16,}[\"']" app/ --include="*.py" \
+             | grep -v "Field(" | grep -v "os.environ" | grep -v "settings\."; then
+            echo "::error::疑似硬编码密钥，请改为从环境变量读取"
+            exit 1
+          fi
+          echo "硬编码密钥检查通过"
