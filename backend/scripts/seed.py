@@ -30,7 +30,7 @@ from app.models import AccountingCategory, Badge, User, UserSetting
 
 # ---------- 管理员账号（成员 4 后台登录用） ----------
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "Admin@123456"  # 仅用于本地/test 开发环境，prod 必须改
+ADMIN_PASSWORD = "123456"  # 仅用于本地/test 开发环境，prod 必须改
 ADMIN_NICKNAME = "系统管理员"
 
 # ---------- 系统默认记账分类 ----------
@@ -105,7 +105,8 @@ def ensure_admin(db) -> User:
     ).scalar_one_or_none()
 
     if admin:
-        print(f"  [跳过] 管理员账号已存在：{ADMIN_USERNAME}")
+        admin.password_hash = hash_password(ADMIN_PASSWORD)
+        print(f"  [更新] 管理员密码已同步为：{ADMIN_USERNAME} / {ADMIN_PASSWORD}")
         return admin
 
     admin = User(

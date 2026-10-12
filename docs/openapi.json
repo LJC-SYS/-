@@ -483,10 +483,2058 @@
           }
         }
       }
+    },
+    "/api/v1/weather/current": {
+      "get": {
+        "tags": [
+          "生活工具 - 天气"
+        ],
+        "summary": "当前天气",
+        "description": "获取指定城市的实时天气数据。\n\n- 优先走本地缓存（默认 30 分钟）。\n- 若第三方服务异常但本地有历史缓存，自动触发降级返回并标明 degraded=True。\n- 无需鉴权。",
+        "operationId": "get_current_weather_api_v1_weather_current_get",
+        "parameters": [
+          {
+            "name": "city_code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "城市编码，如沧州: 101090701",
+              "title": "City Code"
+            },
+            "description": "城市编码，如沧州: 101090701"
+          },
+          {
+            "name": "city_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "城市名称（可选），如沧州",
+              "title": "City Name"
+            },
+            "description": "城市名称（可选），如沧州"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_CurrentWeatherOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weather/forecast": {
+      "get": {
+        "tags": [
+          "生活工具 - 天气"
+        ],
+        "summary": "天气预报",
+        "description": "获取未来 1~7 天天气预报。\n\n- 默认获取 3 天预报。\n- 具备缓存与降级机制。\n- 无需鉴权。",
+        "operationId": "get_weather_forecast_api_v1_weather_forecast_get",
+        "parameters": [
+          {
+            "name": "city_code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "城市编码，如沧州: 101090701",
+              "title": "City Code"
+            },
+            "description": "城市编码，如沧州: 101090701"
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 7,
+              "minimum": 1,
+              "description": "预报天数（1~7 天，默认 3）",
+              "default": 3,
+              "title": "Days"
+            },
+            "description": "预报天数（1~7 天，默认 3）"
+          },
+          {
+            "name": "city_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "城市名称（可选）",
+              "title": "City Name"
+            },
+            "description": "城市名称（可选）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_WeatherForecastOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checkins": {
+      "post": {
+        "tags": [
+          "打卡"
+        ],
+        "summary": "用户打卡",
+        "description": "每日打卡接口。\n\n- 服务端自主以 Asia/Shanghai 时区计算打卡日期与连续天数。\n- 每日打卡奖励 10 积分，5 步事务原子落库。\n- 自动判定并解锁达成徽章（如坚持一周等）。\n- 支持 client_id 幂等防重放，同 client_id 重复提交返回已有记录。",
+        "operationId": "create_checkin_api_v1_checkins_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckinRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_CheckinResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checkins/calendar": {
+      "get": {
+        "tags": [
+          "打卡"
+        ],
+        "summary": "打卡日历",
+        "description": "按年月查询打卡日历与记录明细。\n\n- checkin_days 列表专为日历组件设计，包含当月已打卡的所有天数序号（如 [1, 2, 3, 5]）。\n- 返回当月打卡总天数与打卡记录明细。",
+        "operationId": "get_checkin_calendar_api_v1_checkins_calendar_get",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "年份，例如 2026",
+              "title": "Year"
+            },
+            "description": "年份，例如 2026"
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 12,
+              "minimum": 1,
+              "description": "月份，1~12",
+              "title": "Month"
+            },
+            "description": "月份，1~12"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_CheckinCalendarResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checkins/stats": {
+      "get": {
+        "tags": [
+          "打卡"
+        ],
+        "summary": "打卡统计",
+        "description": "获取用户打卡统计概览。\n\n- 包含当前连续打卡天数、历史最长连续天数、累计打卡天数、当月打卡天数。\n- 返回 today_checked 标识，供客户端直接控制打卡按钮状态。",
+        "operationId": "get_checkin_stats_api_v1_checkins_stats_get",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_CheckinStatsResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/points/balance": {
+      "get": {
+        "tags": [
+          "积分"
+        ],
+        "summary": "积分余额",
+        "description": "查询当前用户的积分余额、今日获得积分及历史累计总获得积分。",
+        "operationId": "get_points_balance_api_v1_points_balance_get",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_PointsBalanceResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/points/transactions": {
+      "get": {
+        "tags": [
+          "积分"
+        ],
+        "summary": "积分流水",
+        "description": "分页获取用户积分变动历史明细。\n\n- 统一采用标准分页响应结构 PageData。\n- 支持按 transaction_type 筛选。",
+        "operationId": "get_point_transactions_api_v1_points_transactions_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从 1 开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从 1 开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页条数，1~100",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页条数，1~100"
+          },
+          {
+            "name": "transaction_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "变动类型，如 checkin",
+              "title": "Transaction Type"
+            },
+            "description": "变动类型，如 checkin"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_PageData_PointTransactionItem__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/badges": {
+      "get": {
+        "tags": [
+          "徽章"
+        ],
+        "summary": "徽章列表",
+        "description": "获取系统全量徽章及当前用户解锁状态。\n\n- 每项徽章包含 earned (true/false) 与 earned_at 字段，方便客户端灰色/彩色渲染。\n- 返回 earned_count 与 total_count。",
+        "operationId": "get_badges_list_api_v1_badges_get",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_BadgeListResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/todos": {
+      "get": {
+        "tags": [
+          "待办事项"
+        ],
+        "summary": "待办列表",
+        "description": "获取当前用户的待办事项分页列表，支持按状态与优先级筛选。",
+        "operationId": "list_todos_api_v1_todos_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "状态: pending/completed/cancelled",
+              "title": "Status"
+            },
+            "description": "状态: pending/completed/cancelled"
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "优先级: low/normal/high",
+              "title": "Priority"
+            },
+            "description": "优先级: low/normal/high"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页条数",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页条数"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_PageData_TodoItem__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "待办事项"
+        ],
+        "summary": "新增待办",
+        "description": "新增待办事项。支持客户端 client_id 幂等，同 client_id 重复提交返回已有记录。",
+        "operationId": "create_todo_api_v1_todos_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTodoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_TodoItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/todos/{id}": {
+      "patch": {
+        "tags": [
+          "待办事项"
+        ],
+        "summary": "修改待办",
+        "description": "更新待办事项。必须携带 version 进行乐观锁校验，版本冲突返回 1407。",
+        "operationId": "update_todo_api_v1_todos__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "待办 ID",
+              "title": "Id"
+            },
+            "description": "待办 ID"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTodoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_TodoItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "待办事项"
+        ],
+        "summary": "删除待办",
+        "description": "软删除待办事项。必须携带 version 进行乐观锁校验，版本冲突返回 1407。",
+        "operationId": "delete_todo_api_v1_todos__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "待办 ID",
+              "title": "Id"
+            },
+            "description": "待办 ID"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "乐观锁版本号",
+              "title": "Version"
+            },
+            "description": "乐观锁版本号"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_NoneType_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/memos": {
+      "get": {
+        "tags": [
+          "备忘录"
+        ],
+        "summary": "备忘录列表",
+        "description": "获取当前用户的备忘录分页列表，置顶优先 + 更新时间倒序排列。",
+        "operationId": "list_memos_api_v1_memos_get",
+        "parameters": [
+          {
+            "name": "is_pinned",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "是否置顶筛选",
+              "title": "Is Pinned"
+            },
+            "description": "是否置顶筛选"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页条数",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页条数"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_PageData_MemoItem__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "备忘录"
+        ],
+        "summary": "新增备忘录",
+        "description": "新增备忘录。支持客户端 client_id 幂等，同 client_id 重复提交返回已有记录。",
+        "operationId": "create_memo_api_v1_memos_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMemoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_MemoItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/memos/{id}": {
+      "patch": {
+        "tags": [
+          "备忘录"
+        ],
+        "summary": "修改备忘录",
+        "description": "更新备忘录。必须携带 version 进行乐观锁校验，版本冲突返回 1407。",
+        "operationId": "update_memo_api_v1_memos__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "备忘录 ID",
+              "title": "Id"
+            },
+            "description": "备忘录 ID"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_MemoItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "备忘录"
+        ],
+        "summary": "删除备忘录",
+        "description": "软删除备忘录。必须携带 version 进行乐观锁校验，版本冲突返回 1407。",
+        "operationId": "delete_memo_api_v1_memos__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "备忘录 ID",
+              "title": "Id"
+            },
+            "description": "备忘录 ID"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "乐观锁版本号",
+              "title": "Version"
+            },
+            "description": "乐观锁版本号"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_NoneType_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/categories": {
+      "get": {
+        "tags": [
+          "记账本"
+        ],
+        "summary": "记账分类",
+        "description": "获取系统默认分类及当前用户的自定义分类合集。",
+        "operationId": "list_categories_api_v1_accounting_categories_get",
+        "parameters": [
+          {
+            "name": "category_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "分类类型筛选: income/expense",
+              "title": "Category Type"
+            },
+            "description": "分类类型筛选: income/expense"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AccountingCategoryListData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/records": {
+      "get": {
+        "tags": [
+          "记账本"
+        ],
+        "summary": "记账记录列表",
+        "description": "分页获取当前用户的记账明细，支持按类型、分类、日期区间筛选。",
+        "operationId": "list_records_api_v1_accounting_records_get",
+        "parameters": [
+          {
+            "name": "record_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "记录类型: income/expense",
+              "title": "Record Type"
+            },
+            "description": "记录类型: income/expense"
+          },
+          {
+            "name": "category_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "分类 ID",
+              "title": "Category Id"
+            },
+            "description": "分类 ID"
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "开始日期 YYYY-MM-DD",
+              "title": "Start Date"
+            },
+            "description": "开始日期 YYYY-MM-DD"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "结束日期 YYYY-MM-DD",
+              "title": "End Date"
+            },
+            "description": "结束日期 YYYY-MM-DD"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页条数",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页条数"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_PageData_AccountingRecordItem__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "记账本"
+        ],
+        "summary": "新增记账记录",
+        "description": "新增记账记录。支持 client_id 幂等防重；校验金额大于 0 及分类类型匹配。",
+        "operationId": "create_record_api_v1_accounting_records_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountingRecordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AccountingRecordItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/records/{id}": {
+      "patch": {
+        "tags": [
+          "记账本"
+        ],
+        "summary": "修改记账记录",
+        "description": "修改记账记录。必须携带 version 进行乐观锁校验，版本冲突返回 1407。",
+        "operationId": "update_record_api_v1_accounting_records__id__patch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "记录 ID",
+              "title": "Id"
+            },
+            "description": "记录 ID"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountingRecordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AccountingRecordItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "记账本"
+        ],
+        "summary": "删除记账记录",
+        "description": "软删除记账记录。必须携带 version 进行乐观锁校验，版本冲突返回 1407。",
+        "operationId": "delete_record_api_v1_accounting_records__id__delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "记录 ID",
+              "title": "Id"
+            },
+            "description": "记录 ID"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "乐观锁版本号",
+              "title": "Version"
+            },
+            "description": "乐观锁版本号"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_NoneType_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounting/summary": {
+      "get": {
+        "tags": [
+          "记账本"
+        ],
+        "summary": "记账汇总",
+        "description": "统计指定日期区间的总收入、总支出、净结余，并支持按分类或按日期分组明细。",
+        "operationId": "get_summary_api_v1_accounting_summary_get",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "开始日期 YYYY-MM-DD",
+              "title": "Start Date"
+            },
+            "description": "开始日期 YYYY-MM-DD"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "结束日期 YYYY-MM-DD",
+              "title": "End Date"
+            },
+            "description": "结束日期 YYYY-MM-DD"
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "分组维度: category / date",
+              "default": "category",
+              "title": "Group By"
+            },
+            "description": "分组维度: category / date"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AccountingSummaryData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sync/push": {
+      "post": {
+        "tags": [
+          "数据同步"
+        ],
+        "summary": "推送本地变更",
+        "description": "客户端批量推送本地离线生成的变更（增/改/删）。\n\n- 实体范围: todo, memo, accounting\n- 服务端优先 (Last-Write-Wins by server) 解决并发冲突\n- 单项冲突返回 status=conflict 并附带 server_data，不阻塞批次中其他项",
+        "operationId": "push_changes_api_v1_sync_push_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncPushRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_SyncPushResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sync/pull": {
+      "get": {
+        "tags": [
+          "数据同步"
+        ],
+        "summary": "拉取增量",
+        "description": "按时间戳增量拉取自 since 之后的云端更新与软删除记录。\n\n- 支持 entity_types 过滤（逗号分隔）\n- 支持 limit 分页与 has_more 状态指示",
+        "operationId": "pull_changes_api_v1_sync_pull_get",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "上次同步时间 ISO 8601，首次传 1970-01-01T00:00:00+08:00",
+              "title": "Since"
+            },
+            "description": "上次同步时间 ISO 8601，首次传 1970-01-01T00:00:00+08:00"
+          },
+          {
+            "name": "entity_types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "逗号分隔，如 todo,memo,accounting",
+              "title": "Entity Types"
+            },
+            "description": "逗号分隔，如 todo,memo,accounting"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "单次拉取上限",
+              "default": 200,
+              "title": "Limit"
+            },
+            "description": "单次拉取上限"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_SyncPullResponseData_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AccountingCategoryItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "分类 ID"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "分类名称"
+          },
+          "category_type": {
+            "type": "string",
+            "title": "Category Type",
+            "description": "分类类型: income/expense"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon",
+            "description": "分类图标"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color",
+            "description": "分类颜色"
+          },
+          "sort_order": {
+            "type": "integer",
+            "title": "Sort Order",
+            "description": "排序",
+            "default": 0
+          },
+          "is_system": {
+            "type": "boolean",
+            "title": "Is System",
+            "description": "是否为系统默认分类"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category_type",
+          "is_system"
+        ],
+        "title": "AccountingCategoryItem",
+        "description": "记账分类单项。"
+      },
+      "AccountingCategoryListData": {
+        "properties": {
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/AccountingCategoryItem"
+            },
+            "type": "array",
+            "title": "List"
+          }
+        },
+        "type": "object",
+        "required": [
+          "list"
+        ],
+        "title": "AccountingCategoryListData",
+        "description": "记账分类列表响应数据。"
+      },
+      "AccountingRecordItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "记录 ID"
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "客户端 UUID 幂等标识"
+          },
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id",
+            "description": "分类 ID"
+          },
+          "category_name": {
+            "type": "string",
+            "title": "Category Name",
+            "description": "分类名称"
+          },
+          "record_type": {
+            "type": "string",
+            "title": "Record Type",
+            "description": "记录类型: income/expense"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount",
+            "description": "金额字符串，保留两位小数"
+          },
+          "record_date": {
+            "type": "string",
+            "title": "Record Date",
+            "description": "记账日期 YYYY-MM-DD"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "备注说明"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "乐观锁版本号",
+            "default": 1
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "description": "创建时间 ISO 8601"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At",
+            "description": "更新时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "client_id",
+          "category_id",
+          "category_name",
+          "record_type",
+          "amount",
+          "record_date",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AccountingRecordItem",
+        "description": "记账记录单项。"
+      },
+      "AccountingSummaryData": {
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "title": "Start Date",
+            "description": "开始日期"
+          },
+          "end_date": {
+            "type": "string",
+            "title": "End Date",
+            "description": "结束日期"
+          },
+          "total_income": {
+            "type": "string",
+            "title": "Total Income",
+            "description": "总收入金额"
+          },
+          "total_expense": {
+            "type": "string",
+            "title": "Total Expense",
+            "description": "总支出金额"
+          },
+          "balance": {
+            "type": "string",
+            "title": "Balance",
+            "description": "净结余金额 (income - expense)"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/AccountingSummaryGroupItem"
+            },
+            "type": "array",
+            "title": "Groups",
+            "description": "分组统计详情"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start_date",
+          "end_date",
+          "total_income",
+          "total_expense",
+          "balance"
+        ],
+        "title": "AccountingSummaryData",
+        "description": "记账月度/区间汇总数据。"
+      },
+      "AccountingSummaryGroupItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "分组标识（如分类名称或日期）"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id",
+            "description": "分类 ID"
+          },
+          "record_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Type",
+            "description": "记录类型: income/expense"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount",
+            "description": "分组总额字符串"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "记账笔数"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "amount",
+          "count"
+        ],
+        "title": "AccountingSummaryGroupItem",
+        "description": "记账汇总分组单项。"
+      },
       "ApiResponse": {
         "properties": {
           "code": {
@@ -527,6 +2575,865 @@
         "title": "ApiResponse",
         "description": "统一响应体。"
       },
+      "ApiResponse_AccountingCategoryListData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountingCategoryListData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[AccountingCategoryListData]"
+      },
+      "ApiResponse_AccountingRecordItem_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountingRecordItem"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[AccountingRecordItem]"
+      },
+      "ApiResponse_AccountingSummaryData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountingSummaryData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[AccountingSummaryData]"
+      },
+      "ApiResponse_BadgeListResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BadgeListResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[BadgeListResponseData]"
+      },
+      "ApiResponse_CheckinCalendarResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckinCalendarResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[CheckinCalendarResponseData]"
+      },
+      "ApiResponse_CheckinResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckinResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[CheckinResponseData]"
+      },
+      "ApiResponse_CheckinStatsResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckinStatsResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[CheckinStatsResponseData]"
+      },
+      "ApiResponse_CurrentWeatherOut_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CurrentWeatherOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[CurrentWeatherOut]"
+      },
+      "ApiResponse_MemoItem_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemoItem"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[MemoItem]"
+      },
+      "ApiResponse_NoneType_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "type": "null",
+            "title": "Data",
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[NoneType]"
+      },
+      "ApiResponse_PageData_AccountingRecordItem__": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageData_AccountingRecordItem_"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[PageData[AccountingRecordItem]]"
+      },
+      "ApiResponse_PageData_MemoItem__": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageData_MemoItem_"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[PageData[MemoItem]]"
+      },
+      "ApiResponse_PageData_PointTransactionItem__": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageData_PointTransactionItem_"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[PageData[PointTransactionItem]]"
+      },
+      "ApiResponse_PageData_TodoItem__": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageData_TodoItem_"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[PageData[TodoItem]]"
+      },
+      "ApiResponse_PointsBalanceResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PointsBalanceResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[PointsBalanceResponseData]"
+      },
+      "ApiResponse_SyncPullResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SyncPullResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[SyncPullResponseData]"
+      },
+      "ApiResponse_SyncPushResponseData_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SyncPushResponseData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[SyncPushResponseData]"
+      },
+      "ApiResponse_TodoItem_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TodoItem"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[TodoItem]"
+      },
+      "ApiResponse_WeatherForecastOut_": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "description": "0 表示成功，非 0 为业务错误码",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "提示信息",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeatherForecastOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "请求唯一标识",
+            "default": ""
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "服务器时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "title": "ApiResponse[WeatherForecastOut]"
+      },
+      "BadgeItem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "徽章唯一编码"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "徽章名称"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "徽章描述"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "图标地址"
+          },
+          "rule_type": {
+            "type": "string",
+            "title": "Rule Type",
+            "description": "规则类型"
+          },
+          "rule_value": {
+            "type": "integer",
+            "title": "Rule Value",
+            "description": "达标数值"
+          },
+          "earned": {
+            "type": "boolean",
+            "title": "Earned",
+            "description": "当前用户是否已获得"
+          },
+          "earned_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earned At",
+            "description": "获得时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "rule_type",
+          "rule_value",
+          "earned"
+        ],
+        "title": "BadgeItem",
+        "description": "徽章信息项。"
+      },
+      "BadgeListResponseData": {
+        "properties": {
+          "earned_count": {
+            "type": "integer",
+            "title": "Earned Count",
+            "description": "已解锁徽章数"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count",
+            "description": "徽章总数"
+          },
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/BadgeItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "全部徽章列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "earned_count",
+          "total_count",
+          "list"
+        ],
+        "title": "BadgeListResponseData",
+        "description": "徽章列表出参。"
+      },
       "ChangePasswordRequest": {
         "properties": {
           "old_password": {
@@ -546,6 +3453,587 @@
           "new_password"
         ],
         "title": "ChangePasswordRequest"
+      },
+      "CheckinCalendarItem": {
+        "properties": {
+          "checkin_date": {
+            "type": "string",
+            "title": "Checkin Date"
+          },
+          "checkin_time": {
+            "type": "string",
+            "title": "Checkin Time"
+          },
+          "points_earned": {
+            "type": "integer",
+            "title": "Points Earned"
+          },
+          "continuous_days": {
+            "type": "integer",
+            "title": "Continuous Days"
+          },
+          "remark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remark"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checkin_date",
+          "checkin_time",
+          "points_earned",
+          "continuous_days"
+        ],
+        "title": "CheckinCalendarItem",
+        "description": "日历中的单条打卡明细。"
+      },
+      "CheckinCalendarResponseData": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year",
+            "description": "年份"
+          },
+          "month": {
+            "type": "integer",
+            "title": "Month",
+            "description": "月份 1~12"
+          },
+          "checkin_days": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Checkin Days",
+            "description": "当月已打卡日期列表，用于日历高亮"
+          },
+          "month_total": {
+            "type": "integer",
+            "title": "Month Total",
+            "description": "当月打卡总天数"
+          },
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/CheckinCalendarItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "打卡记录明细"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "month",
+          "checkin_days",
+          "month_total",
+          "list"
+        ],
+        "title": "CheckinCalendarResponseData",
+        "description": "打卡日历出参。"
+      },
+      "CheckinRequest": {
+        "properties": {
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id",
+            "description": "幂等标识(UUID)，防重复提交"
+          },
+          "remark": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remark",
+            "description": "备注，≤255字"
+          }
+        },
+        "type": "object",
+        "title": "CheckinRequest",
+        "description": "打卡请求体。"
+      },
+      "CheckinResponseData": {
+        "properties": {
+          "checkin_id": {
+            "type": "integer",
+            "title": "Checkin Id",
+            "description": "打卡记录ID"
+          },
+          "checkin_date": {
+            "type": "string",
+            "title": "Checkin Date",
+            "description": "打卡日期 YYYY-MM-DD"
+          },
+          "checkin_time": {
+            "type": "string",
+            "title": "Checkin Time",
+            "description": "打卡时间 ISO 8601"
+          },
+          "points_earned": {
+            "type": "integer",
+            "title": "Points Earned",
+            "description": "本次获得积分"
+          },
+          "continuous_days": {
+            "type": "integer",
+            "title": "Continuous Days",
+            "description": "连续打卡天数"
+          },
+          "points_balance": {
+            "type": "integer",
+            "title": "Points Balance",
+            "description": "最新积分余额"
+          },
+          "new_badges": {
+            "items": {
+              "$ref": "#/components/schemas/NewBadgeItem"
+            },
+            "type": "array",
+            "title": "New Badges",
+            "description": "本次新获得的徽章列表",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "checkin_id",
+          "checkin_date",
+          "checkin_time",
+          "points_earned",
+          "continuous_days",
+          "points_balance"
+        ],
+        "title": "CheckinResponseData",
+        "description": "打卡成功出参。"
+      },
+      "CheckinStatsResponseData": {
+        "properties": {
+          "continuous_days": {
+            "type": "integer",
+            "title": "Continuous Days",
+            "description": "当前连续打卡天数"
+          },
+          "max_continuous_days": {
+            "type": "integer",
+            "title": "Max Continuous Days",
+            "description": "历史最长连续打卡天数"
+          },
+          "total_checkin_days": {
+            "type": "integer",
+            "title": "Total Checkin Days",
+            "description": "累计打卡总天数"
+          },
+          "current_month_days": {
+            "type": "integer",
+            "title": "Current Month Days",
+            "description": "当月打卡天数"
+          },
+          "last_checkin_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Checkin Date",
+            "description": "最近打卡日期"
+          },
+          "today_checked": {
+            "type": "boolean",
+            "title": "Today Checked",
+            "description": "今日是否已打卡"
+          }
+        },
+        "type": "object",
+        "required": [
+          "continuous_days",
+          "max_continuous_days",
+          "total_checkin_days",
+          "current_month_days",
+          "today_checked"
+        ],
+        "title": "CheckinStatsResponseData",
+        "description": "打卡统计出参。"
+      },
+      "CreateAccountingRecordRequest": {
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Client Id",
+            "description": "客户端生成 UUID"
+          },
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id",
+            "description": "关联记账分类 ID"
+          },
+          "record_type": {
+            "type": "string",
+            "title": "Record Type",
+            "description": "记录类型: income/expense"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Amount",
+            "description": "记账金额，必须大于 0"
+          },
+          "record_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Record Date",
+            "description": "记账所属日期 YYYY-MM-DD"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "备注"
+          }
+        },
+        "type": "object",
+        "required": [
+          "client_id",
+          "category_id",
+          "record_type",
+          "amount",
+          "record_date"
+        ],
+        "title": "CreateAccountingRecordRequest",
+        "description": "新增记账记录请求体。"
+      },
+      "CreateMemoRequest": {
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Client Id",
+            "description": "客户端生成 UUID，用于幂等控制"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Content",
+            "description": "正文内容"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "标题"
+          },
+          "is_pinned": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Pinned",
+            "description": "是否置顶",
+            "default": false
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color",
+            "description": "展示颜色标识"
+          }
+        },
+        "type": "object",
+        "required": [
+          "client_id",
+          "content"
+        ],
+        "title": "CreateMemoRequest",
+        "description": "新增备忘录请求体。"
+      },
+      "CreateTodoRequest": {
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Client Id",
+            "description": "客户端生成 UUID，用于幂等控制"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "description": "待办标题"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "详细描述"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority",
+            "description": "优先级: low/normal/high",
+            "default": "normal"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At",
+            "description": "截止时间"
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order",
+            "description": "排序值",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "client_id",
+          "title"
+        ],
+        "title": "CreateTodoRequest",
+        "description": "新增待办请求体。"
+      },
+      "CurrentWeatherOut": {
+        "properties": {
+          "city_code": {
+            "type": "string",
+            "title": "City Code",
+            "description": "城市编码"
+          },
+          "city_name": {
+            "type": "string",
+            "title": "City Name",
+            "description": "城市名称"
+          },
+          "weather_type": {
+            "type": "string",
+            "title": "Weather Type",
+            "description": "天气类型",
+            "default": "current"
+          },
+          "temperature": {
+            "type": "string",
+            "title": "Temperature",
+            "description": "温度字符串，如 18.50"
+          },
+          "humidity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity",
+            "description": "湿度百分比"
+          },
+          "wind_info": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Info",
+            "description": "风向风力说明"
+          },
+          "weather_text": {
+            "type": "string",
+            "title": "Weather Text",
+            "description": "天气现象描述"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "天气图标地址"
+          },
+          "from_cache": {
+            "type": "boolean",
+            "title": "From Cache",
+            "description": "是否来自缓存",
+            "default": false
+          },
+          "degraded": {
+            "type": "boolean",
+            "title": "Degraded",
+            "description": "是否降级返回",
+            "default": false
+          },
+          "fetched_at": {
+            "type": "string",
+            "title": "Fetched At",
+            "description": "数据获取时间 ISO 8601"
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At",
+            "description": "缓存失效时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "city_code",
+          "city_name",
+          "temperature",
+          "weather_text",
+          "fetched_at",
+          "expires_at"
+        ],
+        "title": "CurrentWeatherOut",
+        "description": "实时天气出参。"
+      },
+      "ForecastItem": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "description": "日期 YYYY-MM-DD"
+          },
+          "weather_text": {
+            "type": "string",
+            "title": "Weather Text",
+            "description": "天气现象描述"
+          },
+          "temp_max": {
+            "type": "string",
+            "title": "Temp Max",
+            "description": "最高温度"
+          },
+          "temp_min": {
+            "type": "string",
+            "title": "Temp Min",
+            "description": "最低温度"
+          },
+          "wind_info": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Info",
+            "description": "风向风力"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "图标地址"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "weather_text",
+          "temp_max",
+          "temp_min"
+        ],
+        "title": "ForecastItem",
+        "description": "预报单日天气项。"
       },
       "HTTPValidationError": {
         "properties": {
@@ -617,6 +4105,344 @@
         "type": "object",
         "title": "LogoutRequest"
       },
+      "MemoItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "备忘录 ID"
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "客户端 UUID 幂等标识"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "标题（可空）"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "正文内容"
+          },
+          "is_pinned": {
+            "type": "boolean",
+            "title": "Is Pinned",
+            "description": "是否置顶",
+            "default": false
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color",
+            "description": "展示颜色标识"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "乐观锁版本号",
+            "default": 1
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "description": "创建时间 ISO 8601"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At",
+            "description": "更新时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "client_id",
+          "content",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MemoItem",
+        "description": "备忘录单项数据。"
+      },
+      "NewBadgeItem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "徽章编码"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "徽章名称"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url",
+            "description": "图标地址"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name"
+        ],
+        "title": "NewBadgeItem",
+        "description": "新获得徽章项。"
+      },
+      "PageData_AccountingRecordItem_": {
+        "properties": {
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/AccountingRecordItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "当前页数据"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "当前页码",
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "每页条数",
+            "default": 20
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "总条数",
+            "default": 0
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "总页数",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "PageData[AccountingRecordItem]"
+      },
+      "PageData_MemoItem_": {
+        "properties": {
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/MemoItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "当前页数据"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "当前页码",
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "每页条数",
+            "default": 20
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "总条数",
+            "default": 0
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "总页数",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "PageData[MemoItem]"
+      },
+      "PageData_PointTransactionItem_": {
+        "properties": {
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/PointTransactionItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "当前页数据"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "当前页码",
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "每页条数",
+            "default": 20
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "总条数",
+            "default": 0
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "总页数",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "PageData[PointTransactionItem]"
+      },
+      "PageData_TodoItem_": {
+        "properties": {
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/TodoItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "当前页数据"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "当前页码",
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "每页条数",
+            "default": 20
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "总条数",
+            "default": 0
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "总页数",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "PageData[TodoItem]"
+      },
+      "PointTransactionItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "流水ID"
+          },
+          "change_amount": {
+            "type": "integer",
+            "title": "Change Amount",
+            "description": "变动额度"
+          },
+          "balance_after": {
+            "type": "integer",
+            "title": "Balance After",
+            "description": "变动后余额"
+          },
+          "transaction_type": {
+            "type": "string",
+            "title": "Transaction Type",
+            "description": "变动类型"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "变动描述"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "description": "创建时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "change_amount",
+          "balance_after",
+          "transaction_type",
+          "created_at"
+        ],
+        "title": "PointTransactionItem",
+        "description": "单条积分流水项。"
+      },
+      "PointsBalanceResponseData": {
+        "properties": {
+          "points_balance": {
+            "type": "integer",
+            "title": "Points Balance",
+            "description": "当前积分余额"
+          },
+          "today_earned": {
+            "type": "integer",
+            "title": "Today Earned",
+            "description": "今日已获得积分"
+          },
+          "total_earned": {
+            "type": "integer",
+            "title": "Total Earned",
+            "description": "累计已获得积分"
+          }
+        },
+        "type": "object",
+        "required": [
+          "points_balance",
+          "today_earned",
+          "total_earned"
+        ],
+        "title": "PointsBalanceResponseData",
+        "description": "积分余额出参。"
+      },
       "RefreshRequest": {
         "properties": {
           "refresh_token": {
@@ -687,6 +4513,526 @@
           "password"
         ],
         "title": "RegisterRequest"
+      },
+      "SyncPullChangeItem": {
+        "properties": {
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type",
+            "description": "实体类型: todo / memo / accounting"
+          },
+          "server_id": {
+            "type": "integer",
+            "title": "Server Id",
+            "description": "服务端自增 ID"
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "客户端 UUID 标识"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "实体版本号"
+          },
+          "deleted": {
+            "type": "boolean",
+            "title": "Deleted",
+            "description": "是否已被软删除",
+            "default": false
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At",
+            "description": "更新时间 ISO 8601"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data",
+            "description": "实体数据载荷（已删除时为 null）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entity_type",
+          "server_id",
+          "client_id",
+          "version",
+          "updated_at"
+        ],
+        "title": "SyncPullChangeItem",
+        "description": "服务端下发的单项增量变更。"
+      },
+      "SyncPullResponseData": {
+        "properties": {
+          "server_time": {
+            "type": "string",
+            "title": "Server Time",
+            "description": "服务端时间 ISO 8601"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More",
+            "description": "是否还有更多增量数据需要分页拉取",
+            "default": false
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/SyncPullChangeItem"
+            },
+            "type": "array",
+            "title": "Changes",
+            "description": "增量变更项列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "server_time"
+        ],
+        "title": "SyncPullResponseData",
+        "description": "拉取增量响应数据。"
+      },
+      "SyncPushChangeItem": {
+        "properties": {
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type",
+            "description": "实体类型: todo / memo / accounting"
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "客户端 UUID 标识"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action",
+            "description": "操作类型: create / update / delete"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "本地版本号: create 传 0，update/delete 传本地版本",
+            "default": 0
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data",
+            "description": "变更载荷数据，delete 时为 null"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entity_type",
+          "client_id",
+          "action"
+        ],
+        "title": "SyncPushChangeItem",
+        "description": "客户端推送的单项变更。"
+      },
+      "SyncPushRequest": {
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "title": "Device Id",
+            "description": "客户端设备标识"
+          },
+          "last_sync_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync At",
+            "description": "上次同步时间 ISO 8601"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/SyncPushChangeItem"
+            },
+            "type": "array",
+            "title": "Changes",
+            "description": "变更项列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "device_id"
+        ],
+        "title": "SyncPushRequest",
+        "description": "推送本地变更请求体。"
+      },
+      "SyncPushResponseData": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SyncPushResultItem"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "各项同步结果"
+          },
+          "partial_failure": {
+            "type": "boolean",
+            "title": "Partial Failure",
+            "description": "是否存在冲突或失败项",
+            "default": false
+          },
+          "server_time": {
+            "type": "string",
+            "title": "Server Time",
+            "description": "服务端处理时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "server_time"
+        ],
+        "title": "SyncPushResponseData",
+        "description": "推送本地变更响应数据。"
+      },
+      "SyncPushResultItem": {
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "客户端 UUID 标识"
+          },
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type",
+            "description": "实体类型"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "处理状态: created / updated / deleted / skipped / conflict"
+          },
+          "server_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Server Id",
+            "description": "服务端自增 ID"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "变更后服务端最新版本号"
+          },
+          "server_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Server Version",
+            "description": "冲突时服务端的当前版本号"
+          },
+          "server_data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Server Data",
+            "description": "冲突时服务端的当前数据"
+          }
+        },
+        "type": "object",
+        "required": [
+          "client_id",
+          "entity_type",
+          "status"
+        ],
+        "title": "SyncPushResultItem",
+        "description": "单项变更同步结果。"
+      },
+      "TodoItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "待办 ID"
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "客户端 UUID 幂等标识"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "标题"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "详细描述"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority",
+            "description": "优先级: low/normal/high",
+            "default": "normal"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "状态: pending/completed/cancelled",
+            "default": "pending"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At",
+            "description": "截止时间 ISO 8601"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At",
+            "description": "完成时间 ISO 8601"
+          },
+          "sort_order": {
+            "type": "integer",
+            "title": "Sort Order",
+            "description": "自定义排序",
+            "default": 0
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "乐观锁版本号",
+            "default": 1
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "description": "创建时间 ISO 8601"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At",
+            "description": "更新时间 ISO 8601"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "client_id",
+          "title",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TodoItem",
+        "description": "待办事项单项数据。"
+      },
+      "UpdateAccountingRecordRequest": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "乐观锁版本号，必传"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id",
+            "description": "关联记账分类 ID"
+          },
+          "record_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Type",
+            "description": "记录类型: income/expense"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "记账金额，必须大于 0"
+          },
+          "record_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Date",
+            "description": "记账所属日期 YYYY-MM-DD"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "备注"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "UpdateAccountingRecordRequest",
+        "description": "修改记账记录请求体。"
+      },
+      "UpdateMemoRequest": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "乐观锁版本号，必传"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "标题"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content",
+            "description": "正文内容"
+          },
+          "is_pinned": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Pinned",
+            "description": "是否置顶"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color",
+            "description": "展示颜色标识"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "UpdateMemoRequest",
+        "description": "修改备忘录请求体。"
       },
       "UpdateProfileRequest": {
         "properties": {
@@ -774,6 +5120,96 @@
         "type": "object",
         "title": "UpdateSettingRequest"
       },
+      "UpdateTodoRequest": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "乐观锁版本号，必传"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "待办标题"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "详细描述"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority",
+            "description": "优先级: low/normal/high"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "状态: pending/completed/cancelled"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At",
+            "description": "截止时间"
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order",
+            "description": "排序值"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "UpdateTodoRequest",
+        "description": "修改待办请求体。"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -797,6 +5233,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -806,6 +5249,48 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WeatherForecastOut": {
+        "properties": {
+          "city_code": {
+            "type": "string",
+            "title": "City Code",
+            "description": "城市编码"
+          },
+          "city_name": {
+            "type": "string",
+            "title": "City Name",
+            "description": "城市名称"
+          },
+          "from_cache": {
+            "type": "boolean",
+            "title": "From Cache",
+            "description": "是否来自缓存",
+            "default": false
+          },
+          "degraded": {
+            "type": "boolean",
+            "title": "Degraded",
+            "description": "是否降级返回",
+            "default": false
+          },
+          "list": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastItem"
+            },
+            "type": "array",
+            "title": "List",
+            "description": "预报列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "city_code",
+          "city_name",
+          "list"
+        ],
+        "title": "WeatherForecastOut",
+        "description": "天气预报出参。"
       }
     }
   }
